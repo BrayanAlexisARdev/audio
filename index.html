@@ -79,13 +79,11 @@
       height: 180px;
       border-radius: 50%;
       border: none;
-      background: #0a7bff;
       color: white;
       font-size: 1.6rem;
       font-weight: 450;
       cursor: pointer;
-      transition: background 0.2s, transform 0.15s;
-      box-shadow: 0 2px 12px rgba(10, 123, 255, 0.20);
+      transition: transform 0.15s;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -191,18 +189,17 @@
 
   <script>
     (function() {
-      // Lista exacta de 32 notas (nombre del archivo .wav)
+      // Orden exacto solicitado
       const noteFiles = [
-        "A2.wav", "A2S.wav", "A3.wav", "A3S.wav", "A4.wav", "A4S.wav",
-        "B2.wav", "B3.wav", "B4.wav",
-        "C3.wav", "C3S.wav", "C4.wav", "C4S.wav", "C5.wav",
-        "D3.wav", "D3S.wav", "D4.wav", "D4S.wav",
-        "E3.wav", "E4.wav",
-        "F2.wav", "F2S.wav", "F3.wav", "F3S.wav", "F4.wav", "F4S.wav",
-        "G2.wav", "G2S.wav", "G3.wav", "G3S.wav", "G4.wav", "G4S.wav"
+        "F2.wav", "F2S.wav", "G2.wav", "G2S.wav", "A2.wav", "A2S.wav", "B2.wav",
+        "C3.wav", "C3S.wav", "D3.wav", "D3S.wav", "E3.wav",
+        "F3.wav", "F3S.wav", "G3.wav", "G3S.wav", "A3.wav", "A3S.wav", "B3.wav",
+        "C4.wav", "C4S.wav", "D4.wav", "D4S.wav", "E4.wav",
+        "F4.wav", "F4S.wav", "G4.wav", "G4S.wav", "A4.wav", "A4S.wav", "B4.wav",
+        "C5.wav"
       ];
 
-      // Paleta de 32 colores vibrantes (todos distintos)
+      // 32 colores únicos y vibrantes
       const colorPalette = [
         "#E74C3C", "#E67E22", "#F1C40F", "#2ECC71", "#1ABC9C", "#3498DB",
         "#2980B9", "#9B59B6", "#8E44AD", "#2C3E50", "#D35400", "#C0392B",
@@ -217,42 +214,34 @@
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
 
-      // Limpiar posibles hijos (por si acaso)
       track.innerHTML = '';
       dotsContainer.innerHTML = '';
 
       // Construir slides y dots
       noteFiles.forEach((file, index) => {
-        // Nombre legible: eliminar .wav y convertir S -> ♯
         let displayName = file.replace('.wav', '');
         let noteDisplay = displayName;
         if (displayName.includes('S')) {
           noteDisplay = displayName.replace('S', '♯');
         }
-        // Frecuencia aproximada (solo decorativa)
         const freq = (261.6 * Math.pow(2, (index % 12) / 12)).toFixed(1);
         const description = `${noteDisplay} · ${freq} Hz`;
 
-        // Slide
         const slide = document.createElement('div');
         slide.className = 'slide';
         slide.dataset.index = index;
         slide.dataset.note = displayName;
 
-        // Color único para esta nota
         const bgColor = colorPalette[index % colorPalette.length];
 
-        // Letter (nombre de la nota)
         const letterSpan = document.createElement('span');
         letterSpan.className = 'letter';
         letterSpan.textContent = noteDisplay;
 
-        // Descripción
         const descSpan = document.createElement('span');
         descSpan.className = 'note-description';
         descSpan.textContent = description;
 
-        // Botón circular
         const btn = document.createElement('button');
         btn.className = 'btn-audio';
         btn.textContent = 'Play';
@@ -260,7 +249,6 @@
         btn.style.boxShadow = `0 2px 12px ${bgColor}44`;
         btn.dataset.audio = file;
 
-        // Audio oculto
         const audio = document.createElement('audio');
         audio.preload = 'auto';
         audio.src = file;
@@ -271,21 +259,18 @@
         slide.appendChild(audio);
         track.appendChild(slide);
 
-        // Dot
         const dot = document.createElement('span');
         dot.className = 'dot' + (index === 0 ? ' active' : '');
         dot.dataset.index = index;
         dotsContainer.appendChild(dot);
       });
 
-      // Referencias actualizadas
       const slides = track.querySelectorAll('.slide');
       const dots = dotsContainer.querySelectorAll('.dot');
       const total = slides.length;
       let currentIndex = 0;
       let isTransitioning = false;
 
-      // ---------- funciones de navegación ----------
       function goTo(index, pushState = true) {
         if (isTransitioning) return;
         if (index < 0 || index >= total) return;
@@ -309,7 +294,6 @@
           history.pushState({ index: currentIndex }, '', newUrl);
         }
 
-        // Sincronizar estado de audio: pausar todos menos el activo
         slides.forEach((slide, i) => {
           const audio = slide.querySelector('audio');
           const btn = slide.querySelector('.btn-audio');
@@ -328,7 +312,6 @@
         }, 50);
       }
 
-      // ---------- eventos navegación ----------
       prevBtn.addEventListener('click', () => {
         if (currentIndex > 0) goTo(currentIndex - 1);
       });
@@ -343,7 +326,6 @@
         });
       });
 
-      // ---------- manejo de audio (play/pause) ----------
       slides.forEach((slide) => {
         const audio = slide.querySelector('audio');
         const btn = slide.querySelector('.btn-audio');
@@ -353,7 +335,6 @@
           e.stopPropagation();
           const slideIndex = parseInt(slide.dataset.index);
 
-          // Si no es la slide activa, cambiar y luego reproducir
           if (slideIndex !== currentIndex) {
             goTo(slideIndex, false);
             setTimeout(() => {
@@ -376,7 +357,6 @@
             return;
           }
 
-          // Slide activa: toggle
           if (audio.paused) {
             slides.forEach((s) => {
               const a = s.querySelector('audio');
@@ -405,7 +385,6 @@
         });
       });
 
-      // ---------- restaurar desde URL ----------
       function restoreFromURL() {
         const params = new URLSearchParams(window.location.search);
         const nota = params.get('nota');
@@ -441,7 +420,6 @@
         }
       });
 
-      // ---------- inicialización ----------
       slides.forEach((slide) => {
         const audio = slide.querySelector('audio');
         const btn = slide.querySelector('.btn-audio');
