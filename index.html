@@ -189,7 +189,7 @@
 
   <script>
     (function() {
-      // Orden exacto solicitado
+      // Orden exacto solicitado: de menor a mayor (F2 → C5)
       const noteFiles = [
         "F2.wav", "F2S.wav", "G2.wav", "G2S.wav", "A2.wav", "A2S.wav", "B2.wav",
         "C3.wav", "C3S.wav", "D3.wav", "D3S.wav", "E3.wav",
@@ -224,6 +224,7 @@
         if (displayName.includes('S')) {
           noteDisplay = displayName.replace('S', '♯');
         }
+        // Frecuencia aproximada (solo decorativa)
         const freq = (261.6 * Math.pow(2, (index % 12) / 12)).toFixed(1);
         const description = `${noteDisplay} · ${freq} Hz`;
 
