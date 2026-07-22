@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Minimal · Notas</title>
   <style>
-    /* — reset + base — */
     * {
       margin: 0;
       padding: 0;
@@ -32,7 +31,6 @@
       max-width: 600px;
     }
 
-    /* — contenedor del slider (notas) — */
     .slider-container {
       position: relative;
       width: 100%;
@@ -76,7 +74,6 @@
       letter-spacing: 0.01em;
     }
 
-    /* — botón circular — */
     .btn-audio {
       width: 180px;
       height: 180px;
@@ -96,13 +93,11 @@
     }
 
     .btn-audio:hover {
-      background: #0066e6;
       transform: scale(1.02);
     }
 
     .btn-audio:active {
       transform: scale(0.94);
-      background: #0052c7;
     }
 
     .btn-audio:focus-visible {
@@ -110,7 +105,6 @@
       outline-offset: 6px;
     }
 
-    /* — controles de navegación — */
     .nav-controls {
       display: flex;
       gap: 1.5rem;
@@ -149,12 +143,12 @@
       transform: none;
     }
 
-    /* — indicador de posición (puntos) — */
     .dots {
       display: flex;
       gap: 8px;
       justify-content: center;
       margin: 0.25rem 0 0.5rem;
+      flex-wrap: wrap;
     }
 
     .dot {
@@ -162,7 +156,7 @@
       height: 8px;
       border-radius: 50%;
       background: #cbd5e1;
-      transition: background 0.25s;
+      transition: background 0.25s, width 0.25s;
     }
 
     .dot.active {
@@ -171,7 +165,6 @@
       border-radius: 12px;
     }
 
-    /* responsive */
     @media (max-width: 480px) {
       .btn-audio { width: 140px; height: 140px; font-size: 1.3rem; }
       .letter { font-size: 3.8rem; }
@@ -184,38 +177,12 @@
   <div class="player">
     <div class="slider-container">
       <div class="slider-track" id="sliderTrack">
-        <!-- cada slide: letra + descripción + botón + audio oculto -->
-        <div class="slide" data-index="0" data-note="C">
-          <span class="letter">C</span>
-          <span class="note-description">Do · 261.6 Hz</span>
-          <button class="btn-audio" data-audio="C.wav">Play</button>
-          <audio preload="auto" src="C.wav"></audio>
-        </div>
-        <div class="slide" data-index="1" data-note="C2">
-          <span class="letter">C₂</span>
-          <span class="note-description">Do · 523.3 Hz</span>
-          <button class="btn-audio" data-audio="C2.wav">Play</button>
-          <audio preload="auto" src="C2.wav"></audio>
-        </div>
-        <div class="slide" data-index="2" data-note="D">
-          <span class="letter">D</span>
-          <span class="note-description">Re · 293.7 Hz</span>
-          <button class="btn-audio" data-audio="D.wav">Play</button>
-          <audio preload="auto" src="D.wav"></audio>
-        </div>
-        <div class="slide" data-index="3" data-note="E">
-          <span class="letter">E</span>
-          <span class="note-description">Mi · 329.6 Hz</span>
-          <button class="btn-audio" data-audio="E.wav">Play</button>
-          <audio preload="auto" src="E.wav"></audio>
-        </div>
+        <!-- 32 slides generadas dinámicamente con colores únicos -->
       </div>
     </div>
 
-    <!-- puntos indicadores -->
     <div class="dots" id="dotsContainer"></div>
 
-    <!-- controles -->
     <div class="nav-controls">
       <button class="nav-btn" id="prevBtn" disabled>‹ Anterior</button>
       <button class="nav-btn" id="nextBtn">Siguiente ›</button>
@@ -224,26 +191,101 @@
 
   <script>
     (function() {
-      const track = document.getElementById('sliderTrack');
-      const slides = track.querySelectorAll('.slide');
-      const total = slides.length;
-      let currentIndex = 0;
-      let isTransitioning = false;
+      // Lista exacta de 32 notas (nombre del archivo .wav)
+      const noteFiles = [
+        "A2.wav", "A2S.wav", "A3.wav", "A3S.wav", "A4.wav", "A4S.wav",
+        "B2.wav", "B3.wav", "B4.wav",
+        "C3.wav", "C3S.wav", "C4.wav", "C4S.wav", "C5.wav",
+        "D3.wav", "D3S.wav", "D4.wav", "D4S.wav",
+        "E3.wav", "E4.wav",
+        "F2.wav", "F2S.wav", "F3.wav", "F3S.wav", "F4.wav", "F4S.wav",
+        "G2.wav", "G2S.wav", "G3.wav", "G3S.wav", "G4.wav", "G4S.wav"
+      ];
 
+      // Paleta de 32 colores vibrantes (todos distintos)
+      const colorPalette = [
+        "#E74C3C", "#E67E22", "#F1C40F", "#2ECC71", "#1ABC9C", "#3498DB",
+        "#2980B9", "#9B59B6", "#8E44AD", "#2C3E50", "#D35400", "#C0392B",
+        "#16A085", "#27AE60", "#2980B9", "#8E44AD", "#2C3E50", "#F39C12",
+        "#D35400", "#C0392B", "#1ABC9C", "#2ECC71", "#3498DB", "#9B59B6",
+        "#E67E22", "#E74C3C", "#F1C40F", "#16A085", "#27AE60", "#2980B9",
+        "#8E44AD", "#2C3E50"
+      ];
+
+      const track = document.getElementById('sliderTrack');
       const dotsContainer = document.getElementById('dotsContainer');
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
 
-      // ---------- construir dots ----------
-      slides.forEach((_, i) => {
+      // Limpiar posibles hijos (por si acaso)
+      track.innerHTML = '';
+      dotsContainer.innerHTML = '';
+
+      // Construir slides y dots
+      noteFiles.forEach((file, index) => {
+        // Nombre legible: eliminar .wav y convertir S -> ♯
+        let displayName = file.replace('.wav', '');
+        let noteDisplay = displayName;
+        if (displayName.includes('S')) {
+          noteDisplay = displayName.replace('S', '♯');
+        }
+        // Frecuencia aproximada (solo decorativa)
+        const freq = (261.6 * Math.pow(2, (index % 12) / 12)).toFixed(1);
+        const description = `${noteDisplay} · ${freq} Hz`;
+
+        // Slide
+        const slide = document.createElement('div');
+        slide.className = 'slide';
+        slide.dataset.index = index;
+        slide.dataset.note = displayName;
+
+        // Color único para esta nota
+        const bgColor = colorPalette[index % colorPalette.length];
+
+        // Letter (nombre de la nota)
+        const letterSpan = document.createElement('span');
+        letterSpan.className = 'letter';
+        letterSpan.textContent = noteDisplay;
+
+        // Descripción
+        const descSpan = document.createElement('span');
+        descSpan.className = 'note-description';
+        descSpan.textContent = description;
+
+        // Botón circular
+        const btn = document.createElement('button');
+        btn.className = 'btn-audio';
+        btn.textContent = 'Play';
+        btn.style.background = bgColor;
+        btn.style.boxShadow = `0 2px 12px ${bgColor}44`;
+        btn.dataset.audio = file;
+
+        // Audio oculto
+        const audio = document.createElement('audio');
+        audio.preload = 'auto';
+        audio.src = file;
+
+        slide.appendChild(letterSpan);
+        slide.appendChild(descSpan);
+        slide.appendChild(btn);
+        slide.appendChild(audio);
+        track.appendChild(slide);
+
+        // Dot
         const dot = document.createElement('span');
-        dot.className = 'dot' + (i === 0 ? ' active' : '');
-        dot.dataset.index = i;
+        dot.className = 'dot' + (index === 0 ? ' active' : '');
+        dot.dataset.index = index;
         dotsContainer.appendChild(dot);
       });
-      const dots = dotsContainer.querySelectorAll('.dot');
 
-      // ---------- actualizar slider + URL + dots + botones ----------
+      // Referencias actualizadas
+      const slides = track.querySelectorAll('.slide');
+      const dots = dotsContainer.querySelectorAll('.dot');
+      const total = slides.length;
+      let currentIndex = 0;
+      let isTransitioning = false;
+
+      // ---------- funciones de navegación ----------
       function goTo(index, pushState = true) {
         if (isTransitioning) return;
         if (index < 0 || index >= total) return;
@@ -252,54 +294,41 @@
         isTransitioning = true;
         currentIndex = index;
 
-        // mover track
         track.style.transform = `translateX(-${currentIndex * 100}%)`;
 
-        // actualizar dots
         dots.forEach((dot, i) => {
           dot.classList.toggle('active', i === currentIndex);
         });
 
-        // actualizar botones
         prevBtn.disabled = currentIndex === 0;
         nextBtn.disabled = currentIndex === total - 1;
 
-        // actualizar URL con history.pushState (sin recargar)
         if (pushState) {
           const note = slides[currentIndex].dataset.note;
           const newUrl = `${window.location.pathname}?nota=${encodeURIComponent(note)}`;
           history.pushState({ index: currentIndex }, '', newUrl);
         }
 
-        // sincronizar estado de audio: pausar todos los audios excepto el de la slide activa
+        // Sincronizar estado de audio: pausar todos menos el activo
         slides.forEach((slide, i) => {
           const audio = slide.querySelector('audio');
           const btn = slide.querySelector('.btn-audio');
           if (audio) {
             if (i === currentIndex) {
-              // si el audio de la slide activa estaba sonando, lo dejamos; si no, texto "Play"
-              if (!audio.paused) {
-                btn.textContent = 'Pausa';
-              } else {
-                btn.textContent = 'Play';
-              }
+              btn.textContent = audio.paused ? 'Play' : 'Pausa';
             } else {
-              // pausar los demás y resetear botón
-              if (!audio.paused) {
-                audio.pause();
-              }
+              if (!audio.paused) audio.pause();
               btn.textContent = 'Play';
             }
           }
         });
 
-        // desbloquear transición después de un pequeño delay
         setTimeout(() => {
           isTransitioning = false;
         }, 50);
       }
 
-      // ---------- eventos de navegación ----------
+      // ---------- eventos navegación ----------
       prevBtn.addEventListener('click', () => {
         if (currentIndex > 0) goTo(currentIndex - 1);
       });
@@ -308,7 +337,6 @@
         if (currentIndex < total - 1) goTo(currentIndex + 1);
       });
 
-      // ---------- clicks en los dots ----------
       dots.forEach((dot, i) => {
         dot.addEventListener('click', () => {
           if (i !== currentIndex) goTo(i);
@@ -321,19 +349,14 @@
         const btn = slide.querySelector('.btn-audio');
         if (!audio || !btn) return;
 
-        // Al hacer click en el botón de audio de esta slide
         btn.addEventListener('click', (e) => {
-          e.stopPropagation(); // evitar que se propague al slide (no hay click en slide)
-
-          // Si esta slide NO es la activa, cambiamos a ella y luego reproducimos
+          e.stopPropagation();
           const slideIndex = parseInt(slide.dataset.index);
+
+          // Si no es la slide activa, cambiar y luego reproducir
           if (slideIndex !== currentIndex) {
-            // ir a la slide, pero sin pushState (porque luego el play no debe duplicar el history)
             goTo(slideIndex, false);
-            // después de cambiar, reproducimos (pero debemos esperar a que termine la transición)
-            // usamos un pequeño timeout para asegurar que el slider se actualizó
             setTimeout(() => {
-              // pausar todos los demás audios
               slides.forEach((s) => {
                 const a = s.querySelector('audio');
                 const b = s.querySelector('.btn-audio');
@@ -342,7 +365,6 @@
                   b.textContent = 'Play';
                 }
               });
-              // reproducir el actual
               if (audio.paused) {
                 audio.play().catch(() => {});
                 btn.textContent = 'Pausa';
@@ -354,9 +376,8 @@
             return;
           }
 
-          // Si la slide es la activa, toggle play/pause
+          // Slide activa: toggle
           if (audio.paused) {
-            // pausar cualquier otro audio que esté sonando
             slides.forEach((s) => {
               const a = s.querySelector('audio');
               const b = s.querySelector('.btn-audio');
@@ -373,12 +394,10 @@
           }
         });
 
-        // cuando el audio termina, volver a "Play"
         audio.addEventListener('ended', () => {
           btn.textContent = 'Play';
         });
 
-        // si el audio se pausa externamente (no debería)
         audio.addEventListener('pause', () => {
           if (!audio.ended) {
             btn.textContent = 'Play';
@@ -386,27 +405,21 @@
         });
       });
 
-      // ---------- restaurar estado desde URL al cargar ----------
+      // ---------- restaurar desde URL ----------
       function restoreFromURL() {
         const params = new URLSearchParams(window.location.search);
         const nota = params.get('nota');
         if (nota) {
           let foundIndex = -1;
           slides.forEach((slide, i) => {
-            if (slide.dataset.note === nota) {
-              foundIndex = i;
-            }
+            if (slide.dataset.note === nota) foundIndex = i;
           });
           if (foundIndex !== -1 && foundIndex !== currentIndex) {
-            // ir a la slide sin pushear estado (para no duplicar)
             goTo(foundIndex, false);
-            // actualizar la URL para que coincida (aunque ya está)
-            // pero no es necesario, ya está
           }
         }
       }
 
-      // ---------- evento popstate (cuando el usuario usa back/forward) ----------
       window.addEventListener('popstate', (event) => {
         if (event.state && event.state.index !== undefined) {
           const idx = event.state.index;
@@ -414,7 +427,6 @@
             goTo(idx, false);
           }
         } else {
-          // si no hay state, intentamos leer de la URL
           const params = new URLSearchParams(window.location.search);
           const nota = params.get('nota');
           if (nota) {
@@ -430,8 +442,7 @@
       });
 
       // ---------- inicialización ----------
-      // asegurar que la primera slide tiene botón "Play" y audios pausados
-      slides.forEach((slide, i) => {
+      slides.forEach((slide) => {
         const audio = slide.querySelector('audio');
         const btn = slide.querySelector('.btn-audio');
         if (audio) {
@@ -440,12 +451,10 @@
         }
         if (btn) btn.textContent = 'Play';
       });
-      // activar primera slide
-      goTo(0, false); // sin pushState al inicio
-      // luego restaurar desde URL (si hay parámetro)
+
+      goTo(0, false);
       restoreFromURL();
 
-      // sincronizar botones iniciales
       prevBtn.disabled = true;
       nextBtn.disabled = total === 1;
       if (total === 1) nextBtn.disabled = true;
